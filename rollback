@@ -1,0 +1,66 @@
+Option 1: Argo CD UI
+1. Open the Application in the UI
+2. Click History and Rollback (clock icon)
+3. You'll see a list of previous revisions with their commit SHAs and timestamps
+4. Select the revision you want to rollback to
+5. Click Rollback
+
+Note: this only works if Argo CD has app history recorded — it doesn't work well if you've
+disabled revision history or if the app uses Automated sync with self-heal aggressively re-
+syncing to HEAD.
+
+Option 2: CLI (argocd CLI)
+
+View history:
+
+argocd app history <app-name>
+
+This lists revisions like:
+
+ID  DATE                       REVISION
+0   2024-05-01 10:00:00 +0000 UTC  a1b2c3d
+1   2024-05-02 14:30:00 +0000 UTC  d4e5f6g
+2   2024-05-03 09:15:00 +0000 UTC  h7i8j9k
+
+Rollback to a specific revision ID:
+
+argocd app rollback <app-name> <ID>
+
+Example:
+
+argocd app rollback my-app 1
+
+Option 3: GitOps way (recommended, more "correct")
+
+Since Argo CD is declarative and syncs from Git, the proper GitOps rollback is to revert the
+commit in your Git repo (the source of truth), not fight Argo CD directly:
+
+git revert <bad-commit-sha>
+git push
+
+Argo CD will then auto-sync (or you manually sync) to the reverted state. This is preferred
+because:
+
+• The argocd app rollback CLI/UI method causes drift — Argo CD's desired state (Git)
+  still points to the bad version, so if auto-sync + self-heal is on, it'll snap back to the bad
+  state again
+• Git-based rollback keeps your Git history as the single source of truth, consistent with
+  GitOps principles
+
+Important caveat
+
+If your app has automated sync with self-heal enabled:
+
+syncPolicy:
+  automated:
+    selfHeal: true
+
+Then argocd app rollback will get immediately overridden/re-synced back to whatever's in
+Git — because Argo CD detects "drift" from Git and corrects it. In that case, you must fix Git
+first (revert the commit), not just rollback via CLI/UI.
+
+Quick decision guide:
+
+• Need immediate rollback + auto-sync is off or manual → argocd app rollback is fine
+• Auto-sync + self-heal is on → revert in Git, let Argo CD resync
+• Want a clean audit trail → always prefer Git revert
