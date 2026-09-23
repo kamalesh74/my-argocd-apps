@@ -1,0 +1,91 @@
+Explain the core ArgoCD components: argocd-server, argocd-repo-server, argocd-application-controller, argocd-applicationset-controller, redis, dex-server.
+
+                    Users / CI / CLI
+                          |
+                          v
+                  +---------------+
+                  | argocd-server |
+                  | API / UI / CLI |
+                  +-------+-------+
+                          |
+          +---------------+----------------+
+          |                                |
+          v                                v
+    argocd-repo-server              argocd-applicationset-
+    Git/Helm/Kustomize              controller
+    manifest generation             creates/manages Apps
+          |
+          v
+       Git repos
+          |
+          |
+          v
+ argocd-application-controller
+          |
+          v
+    Kubernetes API
+          |
+          v
+   Desired vs Live state
+
+
+       +-------+       +-----------+
+       | Redis |       | Dex-server |
+       | cache |       | SSO/OIDC   |
+       +-------+       +-----------+
+
+
+argocd-server: The API/UI/CLI front end that handles authentication, RBAC, and webhooks, and doesn't reconcile anything itself.
+
+argocd-repo-server: Clones Git repos and renders manifests (Helm, Kustomize, plain YAML) Responsible for turning source repositories into Kubernetes manifests.
+Repo server generates desired manifests. It does not primarily decide whether the cluster is in sync.
+
+argocd-application-controller: The reconciler that compares Git's desired state with live cluster state and syncs the differences.
+
+argocd-applicationset-controller: Generates Application objects from templates and generators, for fleets of clusters or environments.
+ApplicationSet
+      |
+      +---- dev     -> Application
+      +---- staging -> Application
+      +---- prod    -> Application
+A common use case is deploying the same application to multiple clusters:
+
+ApplicationSet (in the Argo CD cluster)
+   │  cluster generator → one Application per registered cluster
+   ├── App A (destination: cluster-a)  → deploys to cluster-a
+   ├── App B (destination: cluster-b)  → deploys to cluster-b
+   └── App C (destination: cluster-c)  → deploys to cluster-c
+
+
+redis: A cache for manifests and app state that can be rebuilt from Git and the clusters if lost.
+
+dex-server: An optional SSO broker that connects Argo CD login to identity providers like LDAP, SAML, or GitHub.
+
+----------------
+Apps
+
+the CLI talks to argocd-server, not directly to the application controller.
+
+Similarly, when you open the Argo CD UI, your browser talks to argocd-server.
+
+argocd app list
+argocd app get <app>                 # status, health, resources
+argocd app create <app> --repo <url> --path <dir> --dest-server https://kubernetes.default.svc --dest-namespace <ns>
+argocd app sync <app>                # add --prune, --force, --dry-run
+argocd app diff <app>                # live vs Git
+argocd app history <app>
+argocd app rollback <app> <id>
+argocd app set <app> --sync-policy automated --self-heal --auto-prune
+argocd app delete <app>              # add --cascade=false to keep resources
+argocd app wait <app> --health
+argocd app terminate-op <app>        # cancel a stuck sync
+argocd app logs <app>
+
+Clusters and repos
+
+argocd cluster add <kube-context>
+argocd cluster list
+argocd repo add <url> --username <u> --password <p>
+argocd repo list
+
+
