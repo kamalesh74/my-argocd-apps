@@ -1,3 +1,5 @@
+it continuously compares each Application's desired state (Git) against the live cluster state and triggers sync when they drift. It's what actually applies manifests, detects OutOfSync/drift, and enforces selfHeal/prune policies for every Application, whether created manually or via ApplicationSet.
+
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
