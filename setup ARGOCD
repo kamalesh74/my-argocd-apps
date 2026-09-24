@@ -1,0 +1,25 @@
+Create the namespace
+-------------
+kubectl create namespace argocd
+
+Install ArgoCD
+For a lab/learning setup (given the t3.micro sizing we discussed):
+------------------
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+Watch pods come up
+-------------------
+kubectl get pods -n argocd -w
+
+Access the ArgoCD UI
+Easiest for a lab, port-forward:
+------------------------------
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+Get the initial admin password
+-----------------------------------
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+username - admin
+--------------------
+-----------------------------------------------
