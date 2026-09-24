@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: sample-app
-          image: nginx:1.21        # simple nginx as sample app
+          image: nginx:1.25-alpine       # simple nginx as sample app
           ports:
             - containerPort: 80
           resources:
