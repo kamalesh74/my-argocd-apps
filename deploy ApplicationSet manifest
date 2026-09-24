@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: my-apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/kamalesh74/my-argocd-apps.git
+        revision: main
+        directories:
+          - path: '*-app'
+  template:
+    metadata:
+      name: '{{path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/kamalesh74/my-argocd-apps.git
+        targetRevision: main
+        path: '{{path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{path.basename}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+
+--------------------
+ApplicationSet is a factory that generates Application objects.
+
+ApplicationSet automatically generates and manages multiple ArgoCD Applications from a single template, using generators (like Git directories, clusters, or lists) to discover what to create. It eliminates writing one Application YAML per service — add a new folder to Git, and it deploys automatically without manual intervention.
+  
+• You write one ApplicationSet manifest
+• It has a generator (in your case "scan this Git repo for folders matching <pattern>")
+• For each match the generator finds, it uses the template to stamp out a full Application object automatically
+• Those generated Applications are real, normal Application CRDs — indistinguishable from ones you'd write by hand — they just happen to be owned/managed by the ApplicationSet rather than created manually
+
+What you just proved on your own cluster:
+
+• 1 ApplicationSet (my-apps) → found 2 matching folders (sample-app, nginx-app) →
+  generated 2 Application objects → each of those synced its own pods
+----------------------------------------------------------
+            
+install the ApplicationSet controller + CRD:
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/applicationset/master/manifests/install.yaml
+            
+kubectl apply -f appset.yaml
+
+kubectl get applicationsets -n argocd
+kubectl get applications -n argocd
+
+applicationsets create applications
+
+You should see 2 Application objects appear automatically — sample-app and nginx-app — even though you never wrote or applied an Application YAML for either one this time. That's the whole point of ApplicationSet.
+
+            
+
+
+
+
+
+
+
+
+
+
+
+            
