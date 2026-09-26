@@ -1,0 +1,2 @@
+selfHeal: true — automatically reverts any manual/out-of-band changes made directly on the cluster (e.g., kubectl edit) back to match Git, enforcing Git as the single source of truth.
+prune: true — automatically deletes resources from the cluster that have been removed from Git, keeping live state exactly in sync with the repo (no orphaned leftovers).
